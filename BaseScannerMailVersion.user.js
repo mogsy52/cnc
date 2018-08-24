@@ -2,7 +2,7 @@
 // @name            Shockr - Tiberium Alliances Tools - BaseScanner MailVersion
 // @author          EHz
 // @description     Tools to work with Tiberium alliances - mod by EHz
-// @include         http*://prodgame*.alliances.commandandconquer.com/*/index.aspx*
+// @include         http*://*.alliances.commandandconquer.com/*/index.aspx*
 // @version         2.7.2.29
 // @namespace https://greasyfork.org/users/2314
 // ==/UserScript==
