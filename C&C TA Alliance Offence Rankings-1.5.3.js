@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         C&C TA Alliance Offence Rankings
 // @namespace    https://github.com/openai/codex-userscripts
-// @version      1.5.3
+// @version      1.6.0
 // @description  Mails alliance offence, Control Hub code, and current-world Fortress badge status to the current player.
-// @author       Mogsy52
+// @author       Codex
 // @match        https://*.alliances.commandandconquer.com/*/index.aspx*
 // @match        http://*.alliances.commandandconquer.com/*/index.aspx*
 // @grant        none
@@ -43,35 +43,17 @@
       const notBadgedCount = ranked.filter(row => row.badged === false).length;
       const unknownCount = ranked.filter(row => row.badged == null).length;
       const lines = [
-        "[b]Alliance Offence and Fortress Status[/b]",
-        `Members: ${ranked.length} | Codes: ${codeCount} | Badged: ${badgedCount} | Not badged: ${notBadgedCount}${unknownCount ? ` | Unknown: ${unknownCount}` : ""}`,
-        "",
-        "[b]Player | Offence | Fortress | Hub code[/b]"
+        "[b]Alliance Fortress Status[/b]",
+        `Members ${ranked.length} | Codes ${codeCount} | Badged ${badgedCount} | Need badge ${notBadgedCount}${unknownCount ? ` | Unknown ${unknownCount}` : ""}`,
+        "[b]Player | Offence | Fortress badge | Hub code[/b]"
       ];
       ranked.forEach((row, index) => {
         const badge = row.badged === true
-          ? `Badge #${row.badgeRank != null ? row.badgeRank : "?"}`
-          : row.badged === false ? "Not badged" : "Unknown";
-        lines.push(`${index + 1}. [player]${row.name}[/player] | ${row.highest.toFixed(2)} | ${badge} | ${row.hasCode ? "Yes" : "No"}`);
+          ? `#${row.badgeRank != null ? row.badgeRank : "?"}`
+          : row.badged === false ? "No" : "?";
+        lines.push(`${index + 1}. ${row.name} | ${row.highest.toFixed(2)} | ${badge} | ${row.hasCode ? "Yes" : "No"}`);
       });
       return lines.join("\n");
-    }
-
-    function splitReport(report, maxLength) {
-      const lines = report.split("\n");
-      const parts = [];
-      let current = [];
-      for (const line of lines) {
-        const candidate = current.length ? `${current.join("\n")}\n${line}` : line;
-        if (candidate.length > maxLength && current.length) {
-          parts.push(current.join("\n"));
-          current = ["[b]Alliance Offence and Fortress Status — continued[/b]", "", line];
-        } else {
-          current.push(line);
-        }
-      }
-      if (current.length) parts.push(current.join("\n"));
-      return parts;
     }
 
     function normalizedWorldName(value) {
@@ -256,15 +238,13 @@
         if (!rows.length) rows = readMilitaryStrengthTable();
         if (!rows.length) fail("Open Alliance → Roster → Military strength, wait for the table to fill, then click Alliance Offence again.");
         await addBadgeStatus(rows);
-        const subject = "Alliance Offence and Fortress Status";
-        const reports = splitReport(formatReport(rows), 3800);
+        const subject = "Alliance Fortress Status";
+        const report = formatReport(rows);
+        if (report.length > 2600) fail(`The one-mail report is unexpectedly large (${report.length} characters).`);
+        // Let the command queue drain after up to 50 public-profile requests.
+        await new Promise(resolve => window.setTimeout(resolve, 1500));
         setStatus("Sending to yourself…");
-        for (let index = 0; index < reports.length; index++) {
-          const partSubject = reports.length > 1 ? `${subject} (${index + 1}/${reports.length})` : subject;
-          sendToCurrentPlayer(partSubject, reports[index]);
-          // Give the command queue time to accept one mail before adding another.
-          if (index + 1 < reports.length) await new Promise(resolve => window.setTimeout(resolve, 500));
-        }
+        sendToCurrentPlayer(subject, report);
       } catch (error) {
         console.error(`[${SCRIPT}]`, error);
         setStatus("Alliance Offence failed");
@@ -308,3 +288,4 @@
   (document.head || document.documentElement).appendChild(script);
   script.remove();
 })();
+
